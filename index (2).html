@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<meta name="theme-color" content="#0b0a09"/>
+<title>Lumera Store</title>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--gold:#d4af37;--gold2:#f5e6b8;--bg:#0b0a09;--card:#16120e;--line:rgba(212,175,55,.25);--text:#f5f0e8;--muted:#9a9080;--danger:#f87171}
+html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:Vazirmatn,Tahoma,sans-serif}
+.hidden{display:none!important}
+body{background:radial-gradient(ellipse 70% 40% at 30% 20%,rgba(212,175,55,.1),transparent 50%),#0b0a09}
+
+#auth{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;
+  background:radial-gradient(circle at 40% 40%,#1a1612,#0b0a09 60%);transition:background .5s}
+#auth.lit{background:radial-gradient(circle at 40% 40%,rgba(255,220,150,.15),#12100c 45%,#0b0a09)}
+.auth-brand{position:absolute;top:16px;right:16px;font-size:11px;letter-spacing:.25em;color:rgba(212,175,55,.7);font-weight:700}
+.lamp-box{cursor:pointer;width:140px;text-align:center;user-select:none}
+.lamp-box svg{width:140px;height:200px}
+.lamp-glow{opacity:0;transition:opacity .4s}
+#auth.lit .lamp-glow{opacity:1}
+.login-card{width:min(320px,90vw);padding:20px;border-radius:18px;background:rgba(20,16,12,.85);border:1px solid var(--line);
+  opacity:0;pointer-events:none;transform:translateY(10px);transition:.4s}
+#auth.lit .login-card{opacity:1;pointer-events:auto;transform:none}
+.login-card h1{text-align:center;font-size:20px;color:var(--gold2);margin-bottom:12px}
+.tabs{display:flex;gap:6px;margin-bottom:8px}
+.tabs button{flex:1;padding:8px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--muted);font:inherit;font-size:12px;cursor:pointer}
+.tabs button.on{color:var(--gold2);border-color:var(--gold);background:rgba(212,175,55,.08)}
+label{display:block;font-size:10px;color:var(--muted);margin:8px 0 4px}
+input{width:100%;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:#0a0806;color:var(--text);font:inherit;outline:none}
+input:focus{border-color:var(--gold)}
+.btn-gold{width:100%;margin-top:14px;padding:12px;border:0;border-radius:12px;font:inherit;font-weight:800;cursor:pointer;color:#1a1408;
+  background:linear-gradient(180deg,#f0d78c,#d4af37)}
+.btn-gold:disabled{opacity:.5}
+.err{color:var(--danger);font-size:11px;text-align:center;min-height:18px;margin-top:8px}
+.hint{font-size:11px;color:var(--muted)}
+
+#app{min-height:100vh}
+.top{position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;
+  background:rgba(11,10,9,.9);border-bottom:1px solid var(--line)}
+.top .logo{font-weight:900;letter-spacing:.15em;color:var(--gold);font-size:13px}
+.top button{border:1px solid var(--line);background:transparent;color:var(--gold2);border-radius:999px;padding:6px 12px;font:inherit;font-size:11px;cursor:pointer}
+.wrap{max-width:900px;margin:0 auto;padding:20px 16px 40px}
+.hero{text-align:center;margin-bottom:20px}
+.hero h2{font-size:24px;color:var(--gold2)}
+.hero p{font-size:13px;color:var(--muted);margin-top:6px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:560px){.grid2{grid-template-columns:1fr}}
+.card{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--card);min-height:160px;position:relative}
+.card .bg{position:absolute;inset:0;background-size:cover;background-position:center;opacity:.45}
+.card .body{position:relative;padding:16px;min-height:160px;display:flex;flex-direction:column;justify-content:flex-end;
+  background:linear-gradient(180deg,transparent,rgba(0,0,0,.8))}
+.card h3{font-size:18px}
+.card p{font-size:12px;color:#ccc;margin:4px 0 10px;line-height:1.5}
+.card a{font-size:11px;color:var(--gold);text-decoration:none;border:1px solid var(--line);padding:5px 10px;border-radius:999px;align-self:flex-start}
+.section{margin-top:28px}
+.section h3{text-align:center;font-size:15px;color:var(--gold2);margin-bottom:12px}
+.action{border:1px solid var(--line);border-radius:16px;padding:18px;text-align:center;cursor:pointer;background:var(--card)}
+.action:active{opacity:.85}
+.action b{display:block;color:var(--gold2);margin-bottom:4px}
+.action span{font-size:11px;color:var(--muted)}
+
+.modal{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.75);display:flex;align-items:flex-end;justify-content:center;padding:12px}
+@media(min-width:600px){.modal{align-items:center}}
+.mbox{width:min(420px,100%);max-height:88vh;overflow:auto;background:#16120e;border:1px solid var(--line);border-radius:18px;padding:16px}
+.mbox h3{color:var(--gold2);margin-bottom:6px}
+.mbox .sub{font-size:11px;color:var(--muted);margin-bottom:12px;line-height:1.5}
+.opt{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer}
+.opt:active,.opt:hover{border-color:var(--gold)}
+.opt b{display:block;font-size:13px}
+.opt span{font-size:11px;color:var(--muted)}
+.row{display:flex;gap:8px;margin-top:12px}
+.row button{flex:1}
+.btn-ghost{border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:12px;padding:10px;font:inherit;cursor:pointer}
+.chat{display:flex;flex-direction:column;gap:8px;min-height:200px;max-height:45vh;overflow:auto}
+.b{max-width:90%;padding:10px;border-radius:12px;font-size:12px;line-height:1.6}
+.b.bot{align-self:flex-start;background:rgba(212,175,55,.1);border:1px solid var(--line);color:var(--gold2)}
+.b.me{align-self:flex-end;background:rgba(255,255,255,.06)}
+.chip{display:block;width:100%;text-align:right;border:1px solid var(--line);background:#0a0806;color:var(--text);border-radius:10px;padding:10px;font:inherit;font-size:11px;cursor:pointer;margin-top:6px}
+.req{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:8px;font-size:12px}
+.req b{color:var(--gold2)}
+.meta{font-size:10px;color:var(--muted);margin-top:4px}
+.badge{display:inline-block;font-size:10px;border:1px solid var(--line);border-radius:999px;padding:2px 8px;color:var(--gold)}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a1612;border:1px solid var(--line);color:var(--gold2);padding:10px 14px;border-radius:999px;font-size:12px;opacity:0;pointer-events:none;transition:.25s;z-index:60}
+.toast.on{opacity:1}
+.admin-tabs{display:flex;gap:6px;margin-bottom:12px}
+.admin-tabs button{border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:6px 12px;font:inherit;font-size:11px;cursor:pointer}
+.admin-tabs button.on{color:var(--gold2);border-color:var(--gold)}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+
+<div id="auth">
+  <div class="auth-brand">LUMERA STORE</div>
+  <div class="lamp-box" id="lamp" onclick="toggleLamp()">
+    <svg viewBox="0 0 200 280" xmlns="http://www.w3.org/2000/svg">
+      <defs><radialGradient id="g" cx="50%" cy="40%" r="50%"><stop offset="0%" stop-color="rgba(255,220,140,.5)"/><stop offset="100%" stop-color="rgba(255,220,140,0)"/></radialGradient></defs>
+      <ellipse class="lamp-glow" cx="100" cy="140" rx="85" ry="85" fill="url(#g)"/>
+      <path fill="#f5f0e6" d="M45 100 C45 65,155 65,155 100 L145 120 L55 120 Z"/>
+      <rect fill="#f5f0e6" x="92" y="120" width="16" height="95" rx="4"/>
+      <rect fill="#f5f0e6" x="60" y="215" width="80" height="14" rx="6"/>
+    </svg>
+  </div>
+  <p class="hint" id="hint">روی لامپ بزن تا روشن شود</p>
+  <div class="login-card" id="card">
+    <h1>خوش آمدید</h1>
+    <div class="tabs">
+      <button type="button" class="on" id="t-login" onclick="setMode('login')">ورود</button>
+      <button type="button" id="t-reg" onclick="setMode('reg')">ثبت‌نام</button>
+    </div>
+    <div id="f-login">
+      <label>نام کاربری</label>
+      <input id="l-user" maxlength="24" autocomplete="username" placeholder="hesam"/>
+      <label>رمز عبور</label>
+      <input id="l-pass" type="password" maxlength="64" autocomplete="current-password"/>
+    </div>
+    <div id="f-reg" class="hidden">
+      <label>نام نمایشی</label>
+      <input id="r-name" maxlength="32"/>
+      <label>نام کاربری (انگلیسی)</label>
+      <input id="r-user" maxlength="24" autocomplete="username" placeholder="username"/>
+      <label>رمز (حداقل ۸ کاراکتر)</label>
+      <input id="r-pass" type="password" maxlength="64" autocomplete="new-password"/>
+    </div>
+    <p class="err" id="err"></p>
+    <button type="button" class="btn-gold" id="btn" onclick="doAuth()">ورود</button>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+  <div class="top">
+    <div class="logo">LUMERA STORE</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span style="font-size:12px;color:var(--muted)" id="who"></span>
+      <button type="button" onclick="logout()">خروج</button>
+    </div>
+  </div>
+
+  <div id="home" class="wrap">
+    <div class="hero">
+      <h2>فروشگاه رسمی لومرا</h2>
+      <p>طراحی سایت و ربات · پشتیبانی اختصاصی</p>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="bg" style="background-image:url('https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=700&q=70')"></div>
+        <div class="body">
+          <h3>لومرا</h3>
+          <p>شبکه محتوا با تم فضایی</p>
+          <a href="https://amir112233445566778899.github.io/LUMERA/" target="_blank" rel="noopener">مشاهده</a>
+        </div>
+      </div>
+      <div class="card">
+        <div class="bg" style="background-image:url('https://images.unsplash.com/photo-1419242902214-272b7291fe1f?w=700&q=70')"></div>
+        <div class="body">
+          <h3>لومرا دارک</h3>
+          <p>فضای اطلاعیه امن</p>
+          <a href="https://amir112233445566778899.github.io/LUMERA-AI/" target="_blank" rel="noopener">مشاهده</a>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <h3>شروع کن</h3>
+      <div class="grid2">
+        <div class="action" onclick="openOrder()"><b>ثبت سفارش</b><span>ربات یا طراحی سایت</span></div>
+        <div class="action" onclick="openSupport()"><b>پشتیبانی</b><span>چت‌بات لومرا</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="admin" class="wrap hidden">
+    <h2 style="color:var(--gold);font-size:18px;margin-bottom:12px">پنل ادمین</h2>
+    <div class="admin-tabs">
+      <button type="button" class="on" id="at-o" onclick="admTab('o')">سفارش‌ها</button>
+      <button type="button" id="at-s" onclick="admTab('s')">پشتیبانی</button>
+    </div>
+    <div id="adm-o"></div>
+    <div id="adm-s" class="hidden"></div>
+  </div>
+</div>
+
+<div id="m-order" class="modal hidden" onclick="if(event.target===this)closeM()"><div class="mbox" id="obox"></div></div>
+<div id="m-support" class="modal hidden" onclick="if(event.target===this)closeM()">
+  <div class="mbox">
+    <h3>چت‌بات پشتیبانی</h3>
+    <p class="sub">یک گزینه را انتخاب کن</p>
+    <div class="chat" id="chat"></div>
+    <div class="row"><button type="button" class="btn-ghost" onclick="closeM()">بستن</button></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var SB_URL = 'https://xqvjbpezldptplgxfjwr.supabase.co';
+  var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxdmpicGV6bGRwdHBsZ3hmandyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5MTEzODgsImV4cCI6MjEwNjQ4NzM4OH0.9FcsPy8qAcYrJxLW-iNE9gFN_MSI3fCVISLNUFyvLsw';
+  var OWNER = 'hesam';
+  var LS = 'ls_v2';
+  var sb = null;
+  try {
+    sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+  } catch (e) {
+    console.log(e);
+  }
+  var user = null, mode = 'login', lampOn = false;
+  var oStep = 0, oState = {};
+
+  function $(id){ return document.getElementById(id); }
+  function toast(t){ var e=$('toast'); e.textContent=t; e.classList.add('on'); setTimeout(function(){e.classList.remove('on')},2200); }
+  function esc(s){ return String(s||'').replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];}); }
+  function hash(s){
+    s = String(s||'') + '|ls-v2';
+    var h=2166136261;
+    for(var i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h = Math.imul(h,16777619); }
+    return ('00000000'+(h>>>0).toString(16)).slice(-8);
+  }
+  function isAdmin(u){ return String(u||'').toLowerCase() === OWNER; }
+  function okUser(u){
+    u = String(u||'').trim().toLowerCase();
+    if(!/^[a-z][a-z0-9_]{2,19}$/.test(u)) return {ok:false,msg:'نام کاربری: انگلیسی، ۳ تا ۲۰ کاراکتر، حرف اول حرف'};
+    return {ok:true,v:u};
+  }
+  function okName(n){
+    n = String(n||'').trim();
+    if(n.length<2||n.length>32) return {ok:false,msg:'نام ۲ تا ۳۲ کاراکتر'};
+    return {ok:true,v:n};
+  }
+  function okHandle(h){
+    h = String(h||'').trim();
+    if(h.charAt(0)!=='@') return {ok:false,msg:'باید با @ شروع شود'};
+    if(!/^@[A-Za-z0-9._]{3,32}$/.test(h)) return {ok:false,msg:'آیدی نامعتبر'};
+    return {ok:true,v:h};
+  }
+  function netErr(e){
+    var m = String((e&&e.message)||e||'');
+    if(m.indexOf('Failed to fetch')>=0 || m.indexOf('NetworkError')>=0 || m.indexOf('fetch')>=0)
+      return 'سرور در دسترس نیست. پروژه Supabase را Restore کن یا کلید جدید بده';
+    return m || 'خطای ناشناخته';
+  }
+
+  window.toggleLamp = function(){
+    lampOn = !lampOn;
+    $('auth').classList.toggle('lit', lampOn);
+    $('hint').textContent = lampOn ? 'فرم آماده است' : 'روی لامپ بزن تا روشن شود';
+  };
+
+  window.setMode = function(m){
+    mode = m;
+    $('t-login').classList.toggle('on', m==='login');
+    $('t-reg').classList.toggle('on', m==='reg');
+    $('f-login').classList.toggle('hidden', m!=='login');
+    $('f-reg').classList.toggle('hidden', m!=='reg');
+    $('btn').textContent = m==='login' ? 'ورود' : 'ثبت‌نام';
+    $('err').textContent = '';
+  };
+
+  window.doAuth = async function(){
+    if(!lampOn){ $('err').textContent = 'اول لامپ را روشن کن'; return; }
+    if(!sb){ $('err').textContent = 'Supabase لود نشد — اینترنت را چک کن'; return; }
+    $('btn').disabled = true;
+    $('err').textContent = '';
+    try{
+      if(mode==='login') await doLogin();
+      else await doRegister();
+    }catch(e){
+      console.log(e);
+      $('err').textContent = netErr(e);
+    }finally{
+      $('btn').disabled = false;
+    }
+  };
+
+  async function doLogin(){
+    var vu = okUser($('l-user').value); if(!vu.ok){ $('err').textContent=vu.msg; return; }
+    var pass = $('l-pass').value||''; if(pass.length<4){ $('err').textContent='رمز را وارد کن'; return; }
+    var res = await sb.from('ls_users').select('*').eq('username', vu.v).maybeSingle();
+    if(res.error) throw res.error;
+    if(!res.data){ $('err').textContent='کاربر یافت نشد'; return; }
+    if(res.data.password_hash !== hash(pass)){ $('err').textContent='رمز اشتباه'; return; }
+    var adm = isAdmin(res.data.username);
+    try{ await sb.from('ls_users').update({is_admin:adm, last_login_at:new Date().toISOString()}).eq('id', res.data.id); }catch(e){}
+    user = Object.assign({}, res.data, {is_admin:adm});
+    localStorage.setItem(LS, JSON.stringify({id:user.id, username:user.username}));
+    enter();
+  }
+
+  async function doRegister(){
+    var vn = okName($('r-name').value); if(!vn.ok){ $('err').textContent=vn.msg; return; }
+    var vu = okUser($('r-user').value); if(!vu.ok){ $('err').textContent=vu.msg; return; }
+    var pass = $('r-pass').value||''; if(pass.length<8){ $('err').textContent='رمز حداقل ۸ کاراکتر'; return; }
+
+    var ex = await sb.from('ls_users').select('id').eq('username', vu.v).maybeSingle();
+    if(ex.error) throw ex.error;
+    if(ex.data){ $('err').textContent='نام کاربری تکراری است'; return; }
+
+    var row = {
+      username: vu.v,
+      display_name: vn.v,
+      password_hash: hash(pass),
+      is_admin: isAdmin(vu.v),
+      last_login_at: new Date().toISOString()
+    };
+    var res = await sb.from('ls_users').insert(row).select().maybeSingle();
+    if(res.error){
+      if(String(res.error.code)==='23505' || String(res.error.message||'').indexOf('duplicate')>=0){
+        $('err').textContent='نام کاربری تکراری است'; return;
+      }
+      throw res.error;
+    }
+    if(!res.data){ $('err').textContent='ثبت نشد'; return; }
+    user = res.data;
+    localStorage.setItem(LS, JSON.stringify({id:user.id, username:user.username}));
+    enter();
+  }
+
+  function enter(){
+    $('auth').classList.add('hidden');
+    $('app').classList.remove('hidden');
+    $('who').textContent = (user.display_name||user.username) + (isAdmin(user.username)?' · ادمین':'');
+    if(isAdmin(user.username)){
+      $('home').classList.add('hidden');
+      $('admin').classList.remove('hidden');
+      loadAdmin('o');
+    } else {
+      $('home').classList.remove('hidden');
+      $('admin').classList.add('hidden');
+    }
+  }
+
+  window.logout = function(){
+    user=null; localStorage.removeItem(LS);
+    $('app').classList.add('hidden');
+    $('auth').classList.remove('hidden');
+    lampOn=false; $('auth').classList.remove('lit');
+    $('hint').textContent='روی لامپ بزن تا روشن شود';
+  };
+
+  window.closeM = function(){
+    $('m-order').classList.add('hidden');
+    $('m-support').classList.add('hidden');
+  };
+
+  window.openOrder = function(){ oStep=0; oState={}; drawOrder(); $('m-order').classList.remove('hidden'); };
+
+  function drawOrder(){
+    var b = $('obox');
+    if(oStep===0){
+      b.innerHTML='<h3>ثبت سفارش</h3><p class="sub">نوع را انتخاب کن</p>'+
+        '<div class="opt" onclick="pickCat(\'bot\')"><b>ساخت ربات</b><span>تلگرام یا روبیکا</span></div>'+
+        '<div class="opt" onclick="pickCat(\'site\')"><b>طراحی سایت</b><span>وب یا وب‌اپ</span></div>'+
+        '<div class="row"><button type="button" class="btn-ghost" onclick="closeM()">بستن</button></div>';
+    } else if(oStep===1 && oState.cat==='site'){
+      b.innerHTML='<h3>آیدی تماس</h3><p class="sub">آیدی تلگرام یا روبیکا با @</p>'+
+        '<input id="oh" placeholder="@username" dir="ltr" style="width:100%;padding:11px;border-radius:12px;border:1px solid var(--line);background:#0a0806;color:#fff;font:inherit"/>'+
+        '<div class="row"><button type="button" class="btn-ghost" onclick="oStep=0;drawOrder()">بازگشت</button>'+
+        '<button type="button" class="btn-gold" style="flex:1" onclick="siteHandle()">ادامه</button></div>';
+    } else if(oStep===2 && oState.cat==='site'){
+      b.innerHTML='<h3>نوع سایت</h3>'+
+        '<div class="opt" onclick="submitOrder(\'web\')"><b>سایت تحت وب</b><span>روی مرورگر</span></div>'+
+        '<div class="opt" onclick="submitOrder(\'webapp\')"><b>وب در قالب اپ</b><span>ظاهر اپلیکیشن</span></div>'+
+        '<div class="row"><button type="button" class="btn-ghost" onclick="oStep=1;drawOrder()">بازگشت</button></div>';
+    } else if(oStep===1 && oState.cat==='bot'){
+      b.innerHTML='<h3>پلتفرم ربات</h3>'+
+        '<div class="opt" onclick="botPlat(\'telegram\')"><b>تلگرام</b></div>'+
+        '<div class="opt" onclick="botPlat(\'rubika\')"><b>روبیکا</b></div>'+
+        '<div class="row"><button type="button" class="btn-ghost" onclick="oStep=0;drawOrder()">بازگشت</button></div>';
+    } else if(oStep===2 && oState.cat==='bot'){
+      b.innerHTML='<h3>آیدی</h3><p class="sub">با @ وارد کن</p>'+
+        '<input id="oh" placeholder="@username" dir="ltr" style="width:100%;padding:11px;border-radius:12px;border:1px solid var(--line);background:#0a0806;color:#fff;font:inherit"/>'+
+        '<div class="row"><button type="button" class="btn-ghost" onclick="oStep=1;drawOrder()">بازگشت</button>'+
+        '<button type="button" class="btn-gold" style="flex:1" onclick="submitOrder(oState.sub)">ثبت</button></div>';
+    }
+  }
+  window.drawOrder = drawOrder;
+  window.pickCat = function(c){ oState.cat=c; oStep=1; drawOrder(); };
+  window.botPlat = function(p){ oState.sub=p; oStep=2; drawOrder(); };
+  window.siteHandle = function(){
+    var vh=okHandle($('oh').value); if(!vh.ok){toast(vh.msg);return;}
+    oState.handle=vh.v; oStep=2; drawOrder();
+  };
+  window.submitOrder = async function(sub){
+    if(!user){ toast('وارد شو'); return; }
+    if(oState.cat==='bot'){
+      var vh=okHandle($('oh')&&$('oh').value); if(!vh.ok){toast(vh.msg);return;}
+      oState.handle=vh.v;
+    }
+    if(!oState.handle){ toast('آیدی لازم است'); return; }
+    try{
+      var r = await sb.from('ls_orders').insert({
+        user_id:user.id, username:user.username, category:oState.cat, subtype:sub,
+        contact_handle:oState.handle, status:'new'
+      });
+      if(r.error) throw r.error;
+      toast('سفارش ثبت شد'); closeM();
+    }catch(e){ toast(netErr(e)); }
+  };
+
+  var TOPICS = [
+    {k:'no_dm', t:'درخواست دادم اما ادمین پیوی نیومد', r:'پیامت ثبت شد و برای ادمین ارسال شد. به‌زودی پیگیری می‌شود.'},
+    {k:'not_reg', t:'درخواستم ثبت نشد', r:'دوباره از بخش ثبت سفارش اقدام کن. اگر باز مشکل بود همین‌جا بگو.'},
+    {k:'site_bug', t:'مشکل در باز شدن سایتی که خریدم', r:'برای ادمین ارسال شد. آدرس سایت و مشکل را آماده داشته باش.'}
+  ];
+  window.openSupport = function(){
+    var c=$('chat');
+    c.innerHTML='<div class="b bot">سلام، یکی از گزینه‌ها را بزن:</div>';
+    TOPICS.forEach(function(x,i){ c.innerHTML+='<button type="button" class="chip" onclick="sendSup('+i+')">'+esc(x.t)+'</button>'; });
+    $('m-support').classList.remove('hidden');
+  };
+  window.sendSup = async function(i){
+    var t=TOPICS[i]; if(!t||!user) return;
+    var c=$('chat');
+    c.innerHTML+='<div class="b me">'+esc(t.t)+'</div><div class="b bot">'+esc(t.r)+'</div>';
+    try{
+      await sb.from('ls_support').insert({user_id:user.id,username:user.username,topic:t.k,message:t.t,bot_reply:t.r,status:'new'});
+      toast('ارسال شد');
+    }catch(e){ toast(netErr(e)); }
+  };
+
+  window.admTab = function(t){
+    $('at-o').classList.toggle('on',t==='o');
+    $('at-s').classList.toggle('on',t==='s');
+    $('adm-o').classList.toggle('hidden',t!=='o');
+    $('adm-s').classList.toggle('hidden',t!=='s');
+    loadAdmin(t);
+  };
+  async function loadAdmin(t){
+    if(!user||!isAdmin(user.username)) return;
+    if(t==='o'){
+      var box=$('adm-o'); box.innerHTML='...';
+      try{
+        var r=await sb.from('ls_orders').select('*').order('created_at',{ascending:false}).limit(80);
+        if(r.error) throw r.error;
+        if(!r.data||!r.data.length){ box.innerHTML='<p style="color:var(--muted)">خالی</p>'; return; }
+        box.innerHTML=r.data.map(function(o){
+          return '<div class="req"><span class="badge">'+esc(o.status)+'</span> <b>'+esc(o.category)+' / '+esc(o.subtype)+'</b>'+
+            '<div>@'+esc(o.username)+' · '+esc(o.contact_handle)+'</div>'+
+            '<div class="meta">#'+o.id+' · '+esc(new Date(o.created_at).toLocaleString('fa-IR'))+'</div>'+
+            '<div class="row"><button type="button" class="btn-ghost" onclick="markO('+o.id+',\'seen\')">دیده‌شد</button>'+
+            '<button type="button" class="btn-ghost" onclick="markO('+o.id+',\'done\')">انجام</button></div></div>';
+        }).join('');
+      }catch(e){ box.innerHTML='<p style="color:var(--danger)">'+esc(netErr(e))+'</p>'; }
+    } else {
+      var box=$('adm-s'); box.innerHTML='...';
+      try{
+        var r=await sb.from('ls_support').select('*').order('created_at',{ascending:false}).limit(80);
+        if(r.error) throw r.error;
+        if(!r.data||!r.data.length){ box.innerHTML='<p style="color:var(--muted)">خالی</p>'; return; }
+        box.innerHTML=r.data.map(function(s){
+          return '<div class="req"><span class="badge">'+esc(s.status)+'</span> <b>@'+esc(s.username)+'</b>'+
+            '<div>'+esc(s.message)+'</div><div class="meta">'+esc(s.bot_reply)+'</div>'+
+            '<div class="meta">#'+s.id+'</div>'+
+            '<button type="button" class="btn-ghost" style="margin-top:6px" onclick="markS('+s.id+')">بررسی‌شد</button></div>';
+        }).join('');
+      }catch(e){ box.innerHTML='<p style="color:var(--danger)">'+esc(netErr(e))+'</p>'; }
+    }
+  }
+  window.markO=async function(id,st){ await sb.from('ls_orders').update({status:st}).eq('id',id); toast('OK'); loadAdmin('o'); };
+  window.markS=async function(id){ await sb.from('ls_support').update({status:'seen'}).eq('id',id); toast('OK'); loadAdmin('s'); };
+
+  async function boot(){
+    try{
+      var raw=localStorage.getItem(LS);
+      if(raw && sb){
+        var s=JSON.parse(raw);
+        if(s&&s.id){
+          var r=await sb.from('ls_users').select('*').eq('id',s.id).maybeSingle();
+          if(r.data && r.data.username===s.username){
+            user=Object.assign({}, r.data, {is_admin:isAdmin(r.data.username)});
+            enter();
+          } else localStorage.removeItem(LS);
+        }
+      }
+    }catch(e){ localStorage.removeItem(LS); }
+  }
+  boot();
+})();
+</script>
+</body>
+</html>
